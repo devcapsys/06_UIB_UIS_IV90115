@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-import os, sys
+import os, sys, winsound, time
 if __name__ == "__main__":
     BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "../.."))
     if BASE_DIR not in sys.path:
@@ -54,6 +54,11 @@ def run_step(log, config: configuration.AppConfig, update_percentage=lambda x: N
         return 2, "Le DAQ n'avait pas été initialisé."
     else:
         pass
+
+    # Beep PC
+    for _ in range(3):
+        winsound.Beep(1000, 200)  # 1000 Hz pendant 200 ms
+        time.sleep(0.2)
 
     if success == 0:
         return_msg["infos"].append("Nettoyage effectué avec succès.")

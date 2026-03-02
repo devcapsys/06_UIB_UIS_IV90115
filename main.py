@@ -37,6 +37,7 @@ class TestThread(QThread):
         self.skipped_steps = skipped_steps or set()
         self.steps = self.load_steps()
         self.generate_report = generate_report
+        self.runtime_logs = []
 
     def emit_log_message(self, message, color="white"):
         """Emit a log message signal with the given message and color."""
@@ -51,6 +52,9 @@ class TestThread(QThread):
                     message = json.dumps(obj, ensure_ascii=False, indent=2)
             except json.JSONDecodeError:
                 pass
+
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        self.runtime_logs.append(f"[{timestamp}] {message}")
         self.log_message.emit(message, color)
 
     def emit_step_percentage(self, step_idx, percentage):
@@ -158,33 +162,32 @@ class TestThread(QThread):
             if success == 0:  # Test passed OK
                 self.emit_log_message(message, "green")
             elif success == 1:  # Test passed NOK
-                if config.printer and config.arg.product_list:
-                    if config.arg.product_list.get("info") != "debug":
-                        try:
-                            msg_obj = json.loads(message) if isinstance(message, str) else message
-                        except json.JSONDecodeError:
-                            msg_obj = message
-                        # If dict, extract step_name and pass the rest as infos
-                        if isinstance(msg_obj, dict) and "step_name" in msg_obj:
-                            label = msg_obj["step_name"]
-                            infos = []
-                            # If 'infos' exists and is a list, only its elements are displayed
-                            if "infos" in msg_obj and isinstance(msg_obj["infos"], list):
-                                for v in msg_obj["infos"]:
-                                    infos.append({"type": "text", "content": str(v), "align": "l", "weight": 500})
-                            else:
-                                for k, v in msg_obj.items():
-                                    if k != "step_name":
-                                        infos.append({"type": "text", "content": f"{k} : {v}", "align": "l", "weight": 500})
+                if config.printer:
+                    try:
+                        msg_obj = json.loads(message) if isinstance(message, str) else message
+                    except json.JSONDecodeError:
+                        msg_obj = message
+                    # If dict, extract step_name and pass the rest as infos
+                    if isinstance(msg_obj, dict) and "step_name" in msg_obj:
+                        label = msg_obj["step_name"]
+                        infos = []
+                        # If 'infos' exists and is a list, only its elements are displayed
+                        if "infos" in msg_obj and isinstance(msg_obj["infos"], list):
+                            for v in msg_obj["infos"]:
+                                infos.append({"type": "text", "content": str(v), "align": "l", "weight": 500})
                         else:
-                            label = str(msg_obj)
-                            infos = None
-                        config.printer.custom_print_bdt(
-                            config.arg.operator,
-                            config.arg.product_list.get("info"),
-                            config.device_under_test_id,
-                            label,
-                            infos)
+                            for k, v in msg_obj.items():
+                                if k != "step_name":
+                                    infos.append({"type": "text", "content": f"{k} : {v}", "align": "l", "weight": 500})
+                    else:
+                        label = str(msg_obj)
+                        infos = None
+                    config.printer.custom_print_bdt(
+                        config.arg.operator,
+                        "(" + config.arg.product_list_id + ") : " + config.arg.article if config.arg.article else "(" + config.arg.product_list_id + "):Debug",
+                        config.device_under_test_id,
+                        label,
+                        infos)
                 self.emit_log_message(message, "red")
             else:  # Test passed with WARNING
                 self.emit_log_message(message, "yellow")
@@ -223,7 +226,7 @@ class TestThread(QThread):
         if self.generate_report:
             try:
                 report = DeviceReport(config.db, int(device_id), debug=config.arg.show_all_logs)  # type: ignore[attr-defined]
-                report.fetch_data()
+                report.fetch_data(log_content="\n".join(self.runtime_logs))
                 report.generate_pdf_report(output_path)
                 if configuration.VERSION != "DEBUG":
                     os.startfile(output_path)
@@ -1031,11 +1034,11 @@ def main():
     if len(sys.argv) < 12:
         print("Aucun argument fourni, utilisation des paramètres par défaut pour le débogage.")
         # config.arg.operator = "Thomas GERARDIN"
-        # config.arg.commande = "1"
-        # config.arg.of = "1"
-        # config.arg.article = "radar"
-        # config.arg.indice = "1"
-        config.arg.product_list_id = configuration.PRODUCT_LIST_ID_DEFAULT
+        # config.arg.commande = "26300"
+        # config.arg.of = "45610"
+        # config.arg.article = "Template"
+        # config.arg.indice = "A"
+        # config.arg.product_list_id = configuration.PRODUCT_LIST_ID_DEFAULT
         # config.arg.user = "root"
         # config.arg.password = "root"
         # config.arg.host = "127.0.0.1"
@@ -1048,7 +1051,7 @@ def main():
         config.arg.of = sys.argv[3]
         config.arg.article = sys.argv[4]
         config.arg.indice = sys.argv[5]
-        config.arg.product_list_id = sys.argv[6]
+        # config.arg.product_list_id = sys.argv[6]
         config.arg.user = sys.argv[7]
         config.arg.password = sys.argv[8]
         config.arg.host = sys.argv[9]

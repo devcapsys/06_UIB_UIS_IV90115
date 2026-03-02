@@ -33,66 +33,60 @@ def run_step(log, config: configuration.AppConfig, update_percentage=lambda x: N
     config.mcp_manager.digital_write(configuration.MCP23017Pin.EN_VCC_USB, True)
     time.sleep(1)
 
-    # If debug, skip programming
-    # TODO
-    if (configuration.HASH_GIT == "DEBUGG"):
-        log("Mode DEBUG détecté, la programmation est désactivée.", "yellow")
-        return 0, return_msg
-    else:
-        path_soft = config.µc_path
-        binaries = [
-            {"path": path_soft, "log_key": "Application"},
+    path_soft = config.µc_path
+    binaries = [
+        {"path": path_soft, "log_key": "Application"},
+    ]
+    # Paths STM32CubeProgrammer
+    path_stm32 = config.configItems.stm32_cube_programmer.path
+    programmer_dir = getattr(config, 'stm32_programmer_dir', path_stm32)
+    programmer_cli = os.path.join(programmer_dir, "STM32_Programmer_CLI.exe")
+    if not os.path.exists(programmer_cli):
+        return 1, f"STM32CubeProgrammer not found at {programmer_cli}."
+    
+    total_binaries = len(binaries)
+    for idx, binary in enumerate(binaries):
+        percentage = int((idx / total_binaries) * 100)
+        update_percentage(percentage)
+        if not os.path.exists(binary["path"]):
+            return 1, f"File not found: {binary['path']}"
+        
+        cmd = [
+            programmer_cli,
+            "-c", f"port=usb1",
+            "-w", binary["path"]
         ]
-        # Paths STM32CubeProgrammer
-        path_stm32 = config.configItems.stm32_cube_programmer.path
-        programmer_dir = getattr(config, 'stm32_programmer_dir', path_stm32)
-        programmer_cli = os.path.join(programmer_dir, "STM32_Programmer_CLI.exe")
-        if not os.path.exists(programmer_cli):
-            return 1, f"STM32CubeProgrammer not found at {programmer_cli}."
+        log(f"Commande subprocess: {' '.join(cmd)}", "blue")
         
-        total_binaries = len(binaries)
-        for idx, binary in enumerate(binaries):
-            percentage = int((idx / total_binaries) * 100)
-            update_percentage(percentage)
-            if not os.path.exists(binary["path"]):
-                return 1, f"File not found: {binary['path']}"
-            
-            cmd = [
-                programmer_cli,
-                "-c", f"port=usb1",
-                "-w", binary["path"]
-            ]
-            log(f"Commande subprocess: {' '.join(cmd)}", "blue")
-            
-            result = subprocess.run(
-                cmd,
-                check=False,
-                # stdout=subprocess.DEVNULL,
-                # stderr=subprocess.DEVNULL,
-            )
-            msg = f"Programmation de {binary['path']} - returncode={result.returncode}"
-            log(msg, "blue")
-            config.db.create(
-                "skvp_char", {
-                    "step_name_id": step_name_id,
-                    "val_char": msg
-                }
-            )
-            if result.returncode != 0:
-                return_msg["infos"].append(f"Code de retour : {result.returncode}")
-                return_msg["infos"].append(f"Pensez à vérifier l'état du port COM et le câblage.")
-                return 1, return_msg
-        
-        time.sleep(1)
-        config.mcp_manager.digital_write(configuration.MCP23017Pin.EN_VCC_USB, False)
-        config.mcp_manager.digital_write(configuration.MCP23017Pin.EN_24V, False)
-        config.mcp_manager.digital_write(configuration.MCP23017Pin.EN_BTL, False)
-        config.mcp_manager.digital_write(configuration.MCP23017Pin.EN_AUTOMATIC_BTL, True)
-        config.mcp_manager.digital_write(configuration.MCP23017Pin.EN_AUTOMATIC_24V, True)
-        time.sleep(1)
+        result = subprocess.run(
+            cmd,
+            check=False,
+            # stdout=subprocess.DEVNULL,
+            # stderr=subprocess.DEVNULL,
+        )
+        msg = f"Programmation de {binary['path']} - returncode={result.returncode}"
+        log(msg, "blue")
+        config.db.create(
+            "skvp_char", {
+                "step_name_id": step_name_id,
+                "val_char": msg
+            }
+        )
+        if result.returncode != 0:
+            return_msg["infos"].append(f"Code de retour : {result.returncode}")
+            return_msg["infos"].append(f"Pensez à vérifier l'état du port COM et le câblage.")
+            return 1, return_msg
+    
+    time.sleep(1)
+    config.mcp_manager.digital_write(configuration.MCP23017Pin.EN_VCC_USB, False)
+    config.mcp_manager.digital_write(configuration.MCP23017Pin.EN_24V, False)
+    config.mcp_manager.digital_write(configuration.MCP23017Pin.EN_BTL, False)
+    config.mcp_manager.digital_write(configuration.MCP23017Pin.EN_AUTOMATIC_BTL, True)
+    config.mcp_manager.digital_write(configuration.MCP23017Pin.EN_AUTOMATIC_24V, True)
+    time.sleep(1)
 
-        return_msg["infos"].append("Étape OK")
-        return 0, return_msg
+    return_msg["infos"].append("Étape OK")
+    return 0, return_msg
 
 
 if __name__ == "__main__":

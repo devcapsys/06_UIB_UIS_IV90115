@@ -167,9 +167,6 @@ def run_step(log, config: configuration.AppConfig, update_percentage=lambda x: N
         return_msg["infos"].append("L'utilisateur a annulé la saisie.")
         return 1, return_msg
     
-    # TODO Mesure la tension des 3 leds rouges et verte AT pour supprimer le imput
-    # TODO Mettre des charges sur les sorties des leds rouges (voit VSE) et mesurer le courant
-    
     return_msg["infos"].append("Étape OK")
     return 0, return_msg
 

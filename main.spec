@@ -10,15 +10,22 @@ serial_datas, serial_binaries, serial_hiddenimports = collect_all('serial')
 openpyxl_datas, openpyxl_binaries, openpyxl_hiddenimports = collect_all('openpyxl')
 et_xmlfile_datas, et_xmlfile_binaries, et_xmlfile_hiddenimports = collect_all('et_xmlfile')
 
+# Add libmysql.dll manually
+libmysql_path = r'C:\Users\tgerardin\AppData\Roaming\Python\lib\site-packages\libmysql.dll'
+if os.path.exists(libmysql_path):
+    mysql_binaries.append((libmysql_path, '.'))
+
 a = Analysis(
     ['main.py'],
     pathex=[],
     binaries=[] + nidaqmx_binaries + mysql_binaries + reportlab_binaries + serial_binaries + openpyxl_binaries + et_xmlfile_binaries,
     datas=[
-        ('logo-big.png', '.'),
+        ('assets\\logo-big.png', '.'),
         ('steps', 'steps'),
         ('modules', 'modules'),
+        ('assets', 'assets'),
     ] + nidaqmx_datas + mysql_datas + reportlab_datas + serial_datas + openpyxl_datas + et_xmlfile_datas,
+
     hiddenimports=[
         # PyQt6 modules
         'PyQt6.QtCore',
@@ -46,26 +53,15 @@ a = Analysis(
         'reportlab.lib.pagesizes',
         'reportlab.lib.units',
         'reportlab.lib.colors',
-        
+
         # Configuration module
         'configuration',
         
-        # Standard library modules used dynamically
-        'importlib.util',
-        'concurrent.futures',
-        'threading',
-        'ctypes',
-        'tempfile',
-        'logging',
-        'datetime',
-        'json',
-        'os',
-        'sys',
-        'subprocess',
-        'time',
-        'multiprocessing',
-        'multiprocessing.spawn',
-        'multiprocessing.forkserver',
+        # Excel support
+        'openpyxl',
+        
+        # Module Windows pour le son
+        'winsound',
     ] + nidaqmx_hiddenimports + mysql_hiddenimports + reportlab_hiddenimports + serial_hiddenimports + openpyxl_hiddenimports + et_xmlfile_hiddenimports,
     hookspath=[],
     hooksconfig={},
@@ -95,5 +91,5 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon='logo-big.png',
+    icon='assets\\logo-big.png',
 )

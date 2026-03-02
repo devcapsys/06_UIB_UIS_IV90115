@@ -48,18 +48,12 @@ def run_step(log, config: configuration.AppConfig, update_percentage=lambda x: N
     
     log("Aucune adresse MAC détectée sur le DUT, assignation d'une nouvelle adresse.", "blue")
     
-    path = config.configItems.mac_adress_file.path
+    path = configuration.USER_PATH_ROOT + config.configItems.mac_adress_file.path
     mac_address = ""
     manager = None
-    product= ""
-    date = ""
-    bl = ""
-    if configuration.HASH_GIT == "DEBUG":
-        path = "C:\\Users\\tgerardin\\CAPSYS\\INDUSTRIE - Documents\\PROD\\Adresses MAC\\adresses MAC.xlsx"
-    else:
-        product = config.arg.article
-        date = datetime.datetime.now().strftime("%Y-%m-%d")
-        bl = config.arg.commande
+    product= config.arg.article
+    date = datetime.datetime.now().strftime("%Y-%m-%d")
+    bl = config.arg.commande
     log(f"Utilisation du fichier d'adresses MAC : {path}", "blue")
     try:
         manager = MACManager(path, "attributions MAC address")

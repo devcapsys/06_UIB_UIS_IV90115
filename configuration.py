@@ -9,11 +9,12 @@ from modules.capsys_serial_instrument_manager.capsys_serial_instrument_manager i
 from modules.capsys_brady_manager.capsys_brady_manager import BradyBP12Printer  # Custom
 
 # Initialize global variables
+USER_PATH_ROOT = os.path.expanduser(r"~")
 CURRENT_PATH = os.path.dirname(__file__)
-NAME_GUI = "UIB 3 en 1 8E8S RS485 Ehernet 24VDC"
+NAME_GUI = "IV90115 UIB 3 en 1 8E8S RS485 Ehernet 24VDC"
 CONFIG_JSON_NAME = "config_IV90115"
-PRODUCT_LIST_ID_DEFAULT = "6"
-VERSION = "V1.0.0"
+PRODUCT_LIST_ID_DEFAULT = "5"
+VERSION = "V1.1.1"
 HASH_GIT = "DEBUG" # Will be replaced by the Git hash when compiled with command .\build.bat
 AUTHOR = "Thomas GERARDIN"
 PRINTER_NAME = "EPSON TM-T20III Receipt"
@@ -116,7 +117,7 @@ class ConfigItems:
     key_map = {
         "STM32CubeProgrammer": "stm32_cube_programmer",
         "MAC_ADRESS_FILE": "mac_adress_file",
-        "PORT_COM_DUT": "dut",
+        "FDTI_RS232": "fdti_rs232",
     }
 
     def init_config_items(self, configJson):
@@ -132,7 +133,7 @@ class ConfigItems:
                 ConfigItems.ConfigItem(                
                     key=json_key,
                     path=item.get("path", ""),
-                    port=item.get("port", ""),
+                    sn= item.get("sn", ""),
                     name=item.get("name", "")
                 )
             )
@@ -143,20 +144,20 @@ class ConfigItems:
             self,
             key = "",
             path = "",
-            port = "",
+            sn = "",
             name = ""
         ):
             """Initialize a ConfigItem with optional parameters for test configuration."""
             self.key = key
             self.path = path
-            self.port = port
+            self.sn = sn
             self.name = name
     
     def __init__(self):
         """Initialize all ConfigItem attributes for different test parameters."""
         self.stm32_cube_programmer = self.ConfigItem()
         self.mac_adress_file = self.ConfigItem()
-        self.dut = self.ConfigItem()
+        self.fdti_rs232 = self.ConfigItem()
 
 class Arg:
     name = NAME_GUI
@@ -169,13 +170,12 @@ class Arg:
     of = ""
     article = ""
     indice = ""
-    product_list_id = ""
+    product_list_id = PRODUCT_LIST_ID_DEFAULT
     user = "root"
     password = "root"
     host = "127.0.0.1"
     port = "3306"
     database = "capsys_db_bdt"
-    product_list: Optional[dict] = None
     parameters_group: list[str] = []
     external_devices: Optional[list[str]] = None
     script: Optional[str] = None
