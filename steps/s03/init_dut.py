@@ -57,7 +57,7 @@ def run_step(log, config: configuration.AppConfig, update_percentage=lambda x: N
     max = 25.5
     unit = "V"
     config.mcp_manager.digital_write(configuration.MCP23017Pin.EN_GND_IVE1_IVE2_IVF_2, True)
-    time.sleep(2)  # Wait for voltages to stabilize
+    time.sleep(4)  # Wait for voltages to stabilize
     meas_ive1 = config.daq_manager.read_a_line(config.daq_port, configuration.DAQPin.M_V_IVE1.value) / mult
     log(f"Ive1 mesuré : {meas_ive1:.3f} V, min={min}{unit}, max={max}{unit}", "blue")
     id_skvp_ive1 = config.save_value(step_name_id, "IVE1_V", meas_ive1, unit, min, max)

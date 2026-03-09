@@ -86,7 +86,9 @@ def run_step(log, config: configuration.AppConfig, update_percentage=lambda x: N
         return 1, return_msg
     
     # Configuration de l'adresse MAC sur le DUT
-    response = config.serDut.send_command_Cr(f"TEST MAC={mac_address['mac_address']}", timeout=1.0)
+    cmd= f"TEST MAC={mac_address['mac_address']}"
+    response = config.serDut.send_command_Cr(cmd, timeout=1.0)
+    log(f"{cmd} -> {response}", "blue")
     if "OK" not in response:
         if manager:
             manager.close()
@@ -95,6 +97,7 @@ def run_step(log, config: configuration.AppConfig, update_percentage=lambda x: N
 
     # Vérification de l'adresse MAC sur le DUT
     response = config.serDut.send_command("TEST MAC\r", timeout=1.0)
+    log(f"TEST MAC -> {response}", "blue")
     if mac_address['mac_address'] not in response:
         if manager:
             manager.close()
