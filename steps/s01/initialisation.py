@@ -33,7 +33,7 @@ def init_database_and_checks(log, config: configuration.AppConfig):
     operator = Operator(**operators[0])
     operator_id = operator.id
 
-    script = config.db.get_by_column("script", "product_list_id", config.arg.product_list_id)
+    script = config.db.get_by_column("script", "product_list_id", config.arg.product_list_id, False)
     validated_script = None
     for s in script:
         if s.get("valid", 0) == 1:
