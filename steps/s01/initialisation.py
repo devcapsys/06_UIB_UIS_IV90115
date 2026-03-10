@@ -254,13 +254,13 @@ def run_step(log, config: configuration.AppConfig, update_percentage=lambda x: N
     if config.first_test == True:
         if configuration.HASH_GIT == "DEBUG":
             log(f"DEBUG mode: Skipping user input for paths.", "yellow")
-            config.µc_path = "T:\\SW\\00\\083\\A\\SW00083_A01r_UIB_APP.hex"
+            config.µc_path = "T:\\SW\\00\\083\\A\\SW00083_A02r_UIB_APP.hex"
         else:
             config.µc_path = configuration.request_user_input(
                 config,
                 "Soft µc",
                 "Rentrez le chemin du soft µc\n"
-                "Ex : \"T:\\SW\\00\\083\\A\\SW00083_A01r_UIB_APP.hex\""
+                "Ex : \"T:\\SW\\00\\083\\A\\SW00083_A02r_UIB_APP.hex\""
             )
             if config.µc_path is None:
                 return_msg["infos"].append("L'utilisateur a annulé la saisie.")
