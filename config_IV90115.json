@@ -1,4 +1,9 @@
 {
+  "BENCH_WEAR": {
+    "path": "\\CAPSYS\\DONNEES-TECHNIQUES - Documents\\Outillage\\Banc de test standard\\usure_des_bancs.json",
+    "max_value": 1000,
+    "warning_value": 900
+  },
   "STM32CubeProgrammer": {
     "path": "C:\\Program Files\\STMicroelectronics\\STM32Cube\\STM32CubeProgrammer\\bin",
     "name": "STM32_Programmer_CLI.exe"

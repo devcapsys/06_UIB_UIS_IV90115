@@ -38,77 +38,36 @@ def run_step(log, config: configuration.AppConfig, update_percentage=lambda x: N
     config.mcp_manager.digital_write(configuration.MCP23017Pin.EN_AUTOMATIC_BTL, True)
     config.mcp_manager.digital_write(configuration.MCP23017Pin.EN_24V, True)
 
-    # Retry mechanism for serial communication and testing
-    max_retries = 3
-    retry_count = 0
-    test_success = False
+    time.sleep(1)  # Small delay before sending TEST command
 
-    time.sleep(1)  # Small delay before starting the test loop
-    
-    while not test_success and retry_count < max_retries:        
-        if retry_count > 0:
-            log(f"Tentative {retry_count + 1}/{max_retries}", "yellow")
+    try:
+        # Envoi de la commande "TEST"
+        command = "TEST"
+        answer = config.serDut.send_command_Cr(command, read_until="READY")
+        log(f"\"{command.strip()}\" envoyé, \"{answer}\" reçu", "blue")
 
-        try:
-            # Envoi de la commande "TEST"
-            command = "TEST"
-            answer = config.serDut.send_command_Cr(command, read_until="READY")
-            log(f"{command.strip()} envoyé, {answer} reçu", "blue")
+        response_lines = answer.strip().splitlines()
 
-            response_lines = answer.strip().splitlines()
+        # Vérification que toutes les lignes de test se terminent par "OK"
+        # On ignore "TEST EN COURS" qui est juste un message d'information
+        failed_tests = []
+        for line in response_lines:
+            # Ignorer les lignes qui ne sont pas des résultats de test
+            if line in ["TEST EN COURS", "READY"]:
+                continue
+            # Vérifier que les lignes de test se terminent par "OK" et PAS par "NOK"
+            if line.startswith("TEST") and not line.endswith("OK"):
+                failed_tests.append(line)
 
-            # Vérification que toutes les lignes de test se terminent par "OK"
-            # On ignore "TEST EN COURS" qui est juste un message d'information
-            test_failed = False
-            failed_tests = []
-            for line in response_lines:
-                # Ignorer les lignes qui ne sont pas des résultats de test
-                if line in ["TEST EN COURS", "READY"]:
-                    continue
-                # Vérifier que les lignes de test se terminent par "OK" et PAS par "NOK"
-                if line.startswith("TEST"):
-                    if not line.endswith("OK"):
-                        failed_tests.append(line)
-                        test_failed = True
-            
-            if test_failed:
-                log(f"Tests échoués: {', '.join(failed_tests)}", "red")
-                retry_count += 1
-                
-                if retry_count < max_retries:
-                    retry_msg = configuration.request_user_input(
-                        config,
-                        "Tests échoués",
-                        f"Tests échoués: {', '.join(failed_tests)}\nTentative {retry_count}/{max_retries}.\nVoulez-vous réessayer ? (Appuyez sur Entrée pour continuer ou Annuler)"
-                    )
-                    if retry_msg is None:
-                        for test in failed_tests:
-                            return_msg["infos"].append(f"Test échoué: {test}")
-                        return 1, return_msg
-                else:
-                    for test in failed_tests:
-                        return_msg["infos"].append(f"Test échoué: {test}")
-                    return 1, return_msg
-            else:
-                # Si on arrive ici, le test est réussi
-                test_success = True
-                
-        except serial.SerialException as e:
-            log(f"Erreur de communication: {e}", "red")
-            retry_count += 1
-            
-            if retry_count < max_retries:
-                retry_msg = configuration.request_user_input(
-                    config,
-                    "Erreur de communication",
-                    f"READY non reçu ou erreur de communication.\nTentative {retry_count}/{max_retries}.\nVoulez-vous réessayer ? (Appuyez sur Entrée pour continuer ou Annuler)"
-                )
-                if retry_msg is None:
-                    return_msg["infos"].append(f"Erreur de communication: {e}")
-                    return 1, return_msg
-            else:
-                return_msg["infos"].append(f"Erreur de communication: {e}")
-                return 1, return_msg
+        if failed_tests:
+            for test in failed_tests:
+                return_msg["infos"].append(f"Test échoué: {test}")
+            return 1, return_msg
+
+    except serial.SerialException as e:
+        log(f"Erreur de communication: {e}", "red")
+        return_msg["infos"].append(f"Erreur de communication: {e}")
+        return 1, return_msg
 
     # R1 = 12k ohm, R2 = 5.6k ohm, Vout = Vin * (R2 / (R1 + R2))
     mult = 5.6/(5.6+12)
@@ -116,42 +75,19 @@ def run_step(log, config: configuration.AppConfig, update_percentage=lambda x: N
     max = 25.5
     unit = "V"
     
-    # Retry mechanism for AT voltage measurement
-    max_retries_at = 3
-    retry_count_at = 0
-    at_measurement_success = False
-    
-    while not at_measurement_success and retry_count_at < max_retries_at:
-        if retry_count_at > 0:
-            log(f"Tentative de mesure AT {retry_count_at + 1}/{max_retries_at}", "yellow")
-        
-        config.mcp_manager.digital_write(configuration.MCP23017Pin.EN_GND_IVE1_IVE2_IVF_2, True)
-        time.sleep(0.2)  # Wait for voltages to stabilize
-        meas_at = config.daq_manager.read_a_line(config.daq_port, configuration.DAQPin.M_V_AT.value) / mult
-        log(f"AT mesuré : {meas_at:.3f} V, min={min}{unit}, max={max}{unit}", "blue")
-        id_skvp_at = config.save_value(step_name_id, "AT_V", meas_at, unit, min, max)
-        
-        if (meas_at < min) or (meas_at > max):
-            config.db.update_by_id("skvp_float", id_skvp_at, {"valid": 0})
-            retry_count_at += 1
-            
-            if retry_count_at < max_retries_at:
-                retry_msg = configuration.request_user_input(
-                    config,
-                    "Mesure AT hors limites",
-                    f"AT mesuré à {meas_at:.3f} V hors des limites ({min}-{max} {unit}).\nTentative {retry_count_at}/{max_retries_at}.\nVoulez-vous réessayer ? (Appuyez sur Entrée pour continuer ou Annuler)"
-                )
-                if retry_msg is None:
-                    config.mcp_manager.digital_write(configuration.MCP23017Pin.EN_GND_IVE1_IVE2_IVF_2, False)
-                    return_msg["infos"].append(f"AT mesuré à {meas_at:.3f} V hors des limites ({min}-{max} {unit}).")
-                    return 1, return_msg
-            else:
-                config.mcp_manager.digital_write(configuration.MCP23017Pin.EN_GND_IVE1_IVE2_IVF_2, False)
-                return_msg["infos"].append(f"AT mesuré à {meas_at:.3f} V hors des limites ({min}-{max} {unit}).")
-                return 1, return_msg
-        else:
-            config.db.update_by_id("skvp_float", id_skvp_at, {"valid": 1})
-            at_measurement_success = True
+    config.mcp_manager.digital_write(configuration.MCP23017Pin.EN_GND_IVE1_IVE2_IVF_2, True)
+    time.sleep(0.2)  # Wait for voltages to stabilize
+    meas_at = config.daq_manager.read_a_line(config.daq_port, configuration.DAQPin.M_V_AT.value) / mult
+    log(f"AT mesuré : {meas_at:.3f} V, min={min}{unit}, max={max}{unit}", "blue")
+    id_skvp_at = config.save_value(step_name_id, "AT_V", meas_at, unit, min, max)
+
+    if (meas_at < min) or (meas_at > max):
+        config.db.update_by_id("skvp_float", id_skvp_at, {"valid": 0})
+        config.mcp_manager.digital_write(configuration.MCP23017Pin.EN_GND_IVE1_IVE2_IVF_2, False)
+        return_msg["infos"].append(f"AT mesuré à {meas_at:.3f} V hors des limites ({min}-{max} {unit}).")
+        return 1, return_msg
+
+    config.db.update_by_id("skvp_float", id_skvp_at, {"valid": 1})
     
     config.mcp_manager.digital_write(configuration.MCP23017Pin.EN_GND_IVE1_IVE2_IVF_2, False)   
 

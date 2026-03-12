@@ -10,10 +10,10 @@ from modules.capsys_serial_instrument_manager.capsys_serial_instrument_manager i
 # Initialize global variables
 USER_PATH_ROOT = os.path.expanduser(r"~")
 CURRENT_PATH = os.path.dirname(__file__)
-NAME_GUI = "IV90115 UIB 3 en 1 8E8S RS485 Ehernet 24VDC"
+NAME_GUI = "UIB_UIS_IV81041"
 CONFIG_JSON_NAME = "config_IV90115"
 PRODUCT_LIST_ID_DEFAULT = "5"
-VERSION = "V1.2.1"
+VERSION = "V1.3.1"
 HASH_GIT = "DEBUG" # Will be replaced by the Git hash when compiled with command .\build.bat
 AUTHOR = "Thomas GERARDIN"
 PRINTER_NAME = "EPSON TM-T20III Receipt"
@@ -114,6 +114,7 @@ class MCP23017Pin(Enum):
 class ConfigItems:
     """Container for all configuration items used in the test sequence."""
     key_map = {
+        "BENCH_WEAR": "bench_wear",
         "STM32CubeProgrammer": "stm32_cube_programmer",
         "MAC_ADRESS_FILE": "mac_adress_file",
         "FDTI_RS232": "fdti_rs232",
@@ -131,7 +132,9 @@ class ConfigItems:
                 attr_name,
                 ConfigItems.ConfigItem(                
                     key=json_key,
-                    path=item.get("path", ""),
+                    path=item.get("path"),
+                    max_value=item.get("max_value"),
+                    warning_value=item.get("warning_value"),
                     sn= item.get("sn", ""),
                     name=item.get("name", "")
                 )
@@ -143,17 +146,22 @@ class ConfigItems:
             self,
             key = "",
             path = "",
+            max_value = None,
+            warning_value = None,
             sn = "",
             name = ""
         ):
             """Initialize a ConfigItem with optional parameters for test configuration."""
             self.key = key
             self.path = path
+            self.max_value = max_value
+            self.warning_value = warning_value
             self.sn = sn
             self.name = name
     
     def __init__(self):
         """Initialize all ConfigItem attributes for different test parameters."""
+        self.bench_wear = self.ConfigItem()
         self.stm32_cube_programmer = self.ConfigItem()
         self.mac_adress_file = self.ConfigItem()
         self.fdti_rs232 = self.ConfigItem()
@@ -187,6 +195,7 @@ class AppConfig:
         self.db: Optional[GenericDatabaseManager] = None
         self.device_under_test_id: Optional[int] = None
         self.configItems = ConfigItems()
+        self.weariness_threshold: Optional[int] = None
         self.first_test = True
         self.µc_path: Optional[str] = None
         self.daq_port: Optional[str] = None

@@ -144,6 +144,33 @@ def init_database_and_checks(log, config: configuration.AppConfig):
     
     return 0, step_name_id
 
+def check_bench_weariness(log, config: configuration.AppConfig):
+    if not hasattr(config, "device_under_test_id") or config.device_under_test_id is None:
+        return 1, "config.device_under_test_id n'est pas initialisé."
+    
+    # Extract json file
+    json_path = configuration.USER_PATH_ROOT + config.configItems.bench_wear.path
+    try:
+        with open(json_path, 'r', encoding='utf-8') as json_file:
+            bench_wear_data = json.load(json_file)
+    except Exception as e:
+        return 1, f"Problème lors de la lecture du fichier {json_path} : {e}"
+    
+    # Extract specific data from json
+    config.weariness_threshold = bench_wear_data.get(configuration.NAME_GUI)
+    
+    # Check weariness_threshold value
+    if config.weariness_threshold is not None and config.configItems.bench_wear.max_value is not None and config.configItems.bench_wear.warning_value is not None:
+        if config.weariness_threshold > config.configItems.bench_wear.max_value:
+            return 1, f"Le seuil de vieillissement du banc de test est dépassé ({config.weariness_threshold} > {config.configItems.bench_wear.max_value})."
+        elif config.weariness_threshold > config.configItems.bench_wear.warning_value:
+            configuration.request_user_input(config, "Seuil de vieillissement du banc de test", f"Le seuil de vieillissement du banc de test est proche du maximum ({str(config.weariness_threshold)} < {str(config.configItems.bench_wear.max_value)}).")
+            return 0, ""
+        else:
+            return 0, f"Le seuil de vieillissement du banc de test est acceptable ({config.weariness_threshold} < {config.configItems.bench_wear.max_value})."
+    else:
+        return 1, "Le seuil de vieillissement du banc de test n'est pas défini."
+
 def connect_daq(config: configuration.AppConfig, step_name_id):
     # Ensure db is initialized
     if not hasattr(config, "db") or config.db is None:
@@ -236,6 +263,13 @@ def run_step(log, config: configuration.AppConfig, update_percentage=lambda x: N
     if status != 0:
         return_msg["infos"].append(f"{step_name_id}")
         return status, return_msg
+    
+    log("Vérification de l'état du banc de test...", "cyan")
+    status, msg = check_bench_weariness(log, config)
+    if status != 0:
+        return_msg["infos"].append(f"{msg}")
+        return status, return_msg
+    log(f"{msg}", "blue")
     
     update_percentage(30)
     log("Initialisation du DAQ...", "cyan")
