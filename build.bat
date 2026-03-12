@@ -37,6 +37,22 @@ echo.
 echo Remise de VERSION a DEBUG...
 python version_manager.py debug
 
+if %ERRORLEVEL% NEQ 0 (
+    echo.
+    echo ERREUR: Impossible de remettre HASH_GIT a DEBUG.
+    exit /b 1
+)
+
+echo.
+echo Incrementation de VERSION...
+python version_manager.py bump
+
+if %ERRORLEVEL% NEQ 0 (
+    echo.
+    echo ERREUR: Impossible d'incrementer VERSION.
+    exit /b 1
+)
+
 echo.
 echo =============================================
 echo     Compilation terminee avec succes !
