@@ -13,10 +13,10 @@ CURRENT_PATH = os.path.dirname(__file__)
 NAME_GUI = "UIB_UIS_IV81041"
 CONFIG_JSON_NAME = "config_IV90115"
 PRODUCT_LIST_ID_DEFAULT = "5"
-VERSION = "V1.3.1"
+VERSION = "V1.4.1"
 HASH_GIT = "DEBUG" # Will be replaced by the Git hash when compiled with command .\build.bat
 AUTHOR = "Thomas GERARDIN"
-PRINTER_NAME = "EPSON TM-T20III Receipt"
+PRINTER_NAME = ["EPSON TM-T20III Receipt", "EPSON TM-T(203dpi) Receipt6"]
 
 def get_project_path(*paths):
     """Return the absolute path from the project root, regardless of current working directory."""
